@@ -42,4 +42,4 @@ main --> main: Maunaul steps to automaticaly deploy images into GCP for Kusama a
 @enduml
 ```
 
-![](./be-workflow-and-release.svg)
+![](./svg/be-workflow-and-release.svg)
