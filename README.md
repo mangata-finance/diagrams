@@ -5,10 +5,6 @@ Set `plantuml:{filename}` as a fence information. `filename` is used as the file
 `filename` is required.
 
 ```plantuml:be-workflow-and-release
-# Back-End GIT and release workflow
-
-Diagram descibes back-end workflow
-
 @startuml
 
 actor       "Engineer"       as dev
