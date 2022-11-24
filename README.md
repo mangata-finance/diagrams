@@ -40,3 +40,31 @@ main --> main: Maunaul steps to automaticaly deploy images into GCP for Kusama a
 ```
 
 ![](./svg/be-workflow-and-release.svg)
+
+## Mangata FE team workflow and release process
+```plantuml:fe-workflow-and-release
+@startuml
+
+actor       "Engineer"       as dev
+actor       "Reviewer"       as review
+actor       "QA Team"       as qa
+participant "feature branch" as feature
+control "Pull Request" as pr
+participant "main branch" as main
+
+main --> feature: New branch matching Jira ticket ID and short name is created
+dev --> feature: Engineer implements the feature with idividual commits.
+feature --> pr: *Pull Request* is created
+pr --> pr: Unit tests are executed
+review --> pr: Code review is done by the team
+dev --> pr: Code review changes are applied
+pr --> main: Squash commits and merge when all checks passed
+qa --> main: QA team runs requered test cases
+dev --> main: Release will be triggered by git *TAG*
+main --> main: Automation will increase the version and generate changelog
+dev --> main: Hotfixes will be commited and released as a new patch version
+
+@enduml
+```
+
+![](./svg/fe-workflow-and-release.svg)
