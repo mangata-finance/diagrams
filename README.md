@@ -59,8 +59,9 @@ pr --> pr: Unit tests are executed
 review --> pr: Code review is done by the team
 dev --> pr: Code review changes are applied
 pr --> main: Squash commits and merge when all checks passed
+main --> main: Automatic deploy on develop environment
 qa --> main: QA team runs requered test cases
-dev --> main: Release will be triggered by git *TAG*
+dev --> main: Release to production will be triggered by git *TAG*
 main --> main: Automation will increase the version and generate changelog
 dev --> main: Hotfixes will be commited and released as a new patch version
 
