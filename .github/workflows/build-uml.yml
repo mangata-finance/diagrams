@@ -19,3 +19,12 @@ jobs:
           message: "Render PlantUML files"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+      - id: upload-folder
+        uses: google-github-actions/upload-cloud-storage@v1
+        with:
+          path: '/svg'
+          destination: 'mangata-diagrams'
