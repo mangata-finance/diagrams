@@ -29,5 +29,5 @@ jobs:
       - id: upload-folder
         uses: google-github-actions/upload-cloud-storage@v1
         with:
-          path: '/svg'
+          path: svg
           destination: 'mangata-diagrams'
