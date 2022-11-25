@@ -4,7 +4,10 @@ Repository, where all diagrams are stored.
 Set `plantuml:{filename}` as a fence information. `filename` is used as the file name of generated diagrams. In the following case, `md-sample-sequence.svg` is created.
 `filename` is required.
 
+Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*` folder that is public and URLs can be used anywhere needed.
+
 ## Mangata BE team workflow and release process
+`https://storage.googleapis.com/mangata-diagrams/svg/be-workflow-and-release.svg`
 ```plantuml:be-workflow-and-release
 @startuml
 
@@ -42,6 +45,7 @@ main --> main: Maunaul steps to automaticaly deploy images into GCP for Kusama a
 ![](./svg/be-workflow-and-release.svg)
 
 ## Mangata FE team workflow and release process
+`https://storage.googleapis.com/mangata-diagrams/svg/fe-workflow-and-release.svg`
 ```plantuml:fe-workflow-and-release
 @startuml
 
