@@ -6,6 +6,56 @@ Set `plantuml:{filename}` as a fence information. `filename` is used as the file
 
 Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*` folder that is public and URLs can be used anywhere needed.
 
+## (ETH Rollup MVP) ETH -> Mangata -> Eigen Layer AVS Deposit flow
+`https://storage.googleapis.com/mangata-diagrams/svg/mangata-eth-rollup-mvp.svg`
+```plantuml:mangata-eth-rollup-mvp
+@startuml
+
+actor       "ETH User"       as user
+participant "Mangata ETH Contract"   as mangatacontract
+
+box "Bob - dude who runs Mangata Collator + Sequencer as one service" #LightBlue
+participant "Sequencer (Bob)"   as sequencer
+participant "Collator (Bob)" as collator
+end box
+
+participant "Mangata Updater" as updater
+
+participant "Eigen Agregator & TM" as agregator
+
+collections "Eigen Operators (AVS)" as operator
+participant "Eigen ETH Contract"   as eigencontract
+participant "Kusama Relay"   as relay
+
+user --> mangatacontract: Trigger deposit of 1 MGA token 
+
+collator --> collator: It is collators (Bob) order to build a block
+sequencer --> mangatacontract: Sequencer (Bob) will read ETH contract updates
+sequencer --> collator: Submit Extrinsic with new ETH deposits
+collator --> collator: Collator (Bob) will produce block
+
+agregator --> collator: Reads that new N block(s) was produced by some collator
+agregator --> operator: Submits task: Finalize blocks
+operator --> relay: Check finalisation on Relay chain
+operator --> operator: (optional) execute try-runtime block validation
+operator --> operator: Sign the response with operator PK
+operator --> agregator: Returns finished task
+agregator --> eigencontract: Submits TX on ETH Contract with the hashed information
+eigencontract --> eigencontract: Stored data for each block in a key-value storage
+eigencontract --> eigencontract: Removes old block data
+
+updater --> eigencontract: Subscribed for block finalisation
+updater --> updater: Stores lates finalized block by Eigen layer
+updater --> collator: Subscribed for deposit event with finished dispute period
+updater --> mangatacontract: Once required block is finilised and there is deposit that needs to be confirmed, executes TX on ETH
+
+
+mangatacontract --> eigencontract: Confirms that required hashes match
+mangatacontract --> user: Deposit is confirmed
+
+@enduml
+```
+
 ## Mangata BE team workflow and release process
 `https://storage.googleapis.com/mangata-diagrams/svg/be-workflow-and-release.svg`
 ```plantuml:be-workflow-and-release
