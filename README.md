@@ -56,6 +56,8 @@ mangatacontract --> user: Deposit is confirmed
 @enduml
 ```
 
+![](./svg/mangata-eth-rollup-mvp.svg)
+
 ## Mangata BE team workflow and release process
 `https://storage.googleapis.com/mangata-diagrams/svg/be-workflow-and-release.svg`
 ```plantuml:be-workflow-and-release
