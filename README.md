@@ -11,7 +11,7 @@ Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*
 ```plantuml:mangata-eth-rollup-mvp
 @startuml
 
-actor       "ETH User"       as user
+actor       "ETH Metamask User"       as user
 participant "Mangata ETH Contract"   as mangatacontract
 
 box "Bob - dude who runs Mangata Collator + Sequencer as one service" #LightBlue
@@ -32,12 +32,14 @@ user --> mangatacontract: Trigger deposit of 1 MGA token
 collator --> collator: It is collators (Bob) order to build a block
 sequencer --> mangatacontract: Sequencer (Bob) will read ETH contract updates
 sequencer --> collator: Submit Extrinsic with new ETH deposits
+collator --> collator: A new ETH compatible address will be created for user
+collator --> collator: New Token will be registered in asset registry
 collator --> collator: Collator (Bob) will produce block
 
 agregator --> collator: Reads that new N block(s) was produced by some collator
 agregator --> operator: Submits task: Finalize blocks
 operator --> relay: Check finalisation on Relay chain
-operator --> operator: (optional) execute try-runtime block validation
+operator --> operator: (V2) execute try-runtime block validation
 operator --> operator: Sign the response with operator PK
 operator --> agregator: Returns finished task
 agregator --> eigencontract: Submits TX on ETH Contract with the hashed information
