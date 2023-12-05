@@ -29,7 +29,7 @@ jobs:
           service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
-      # - uses: mxschmitt/action-tmate@v3
+      - uses: mxschmitt/action-tmate@v3
       - name: Delete Existing Files in Bucket
         run: gsutil -m rm -r gs://mangata-diagrams/**
       - id: upload-folder
