@@ -24,6 +24,7 @@ jobs:
         with:
           workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
           service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+      - uses: mxschmitt/action-tmate@v3
       - name: Delete Existing Files in Bucket
         run: gsutil -m rm -r gs://mangata-diagrams/**
       - id: upload-folder
