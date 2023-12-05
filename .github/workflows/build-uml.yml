@@ -6,10 +6,12 @@ jobs:
   generate_plantuml:
     runs-on: ubuntu-latest
     name: plantuml
-    permissions: write-all
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
       - name: plantuml
@@ -20,12 +22,16 @@ jobs:
           message: "Render PlantUML files"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: google-github-actions/auth@v1
+      - uses: google-github-actions/auth@v2
+        id: auth
         with:
           workload_identity_provider: '${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}'
           service_account: '${{ secrets.GCP_SERVICE_ACCOUNT }}'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      
       - name: Delete Existing Files in Bucket
-        run: gsutil -m rm -r gs://mangata-diagrams/**
+        run: gsutil -m rm -a gs://mangata-diagrams/**
       - id: upload-folder
         uses: google-github-actions/upload-cloud-storage@v1
         with:
