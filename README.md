@@ -6,7 +6,7 @@ Set `plantuml:{filename}` as a fence information. `filename` is used as the file
 
 Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*` folder that is public and URLs can be used anywhere needed.
 
-## (ETH Rollup MVP) ETH -> Mangata -> Eigen Layer AVS Deposit flow
+## (ETH Rollup MVP) ETH -> Mangata -> Eigen Layer AVS Deposit/Withdrawal flow
 `https://storage.googleapis.com/mangata-diagrams/svg/mangata-eth-rollup-mvp.svg`
 ```plantuml:mangata-eth-rollup-mvp
 @startuml
@@ -27,33 +27,75 @@ collections "Eigen Operators (AVS)" as operator
 participant "Eigen ETH Contract"   as eigencontract
 participant "Kusama Relay"   as relay
 
-user --> mangatacontract: Trigger deposit of 1 MGA token 
+user --> mangatacontract: Trigger deposit of 1 MGR token 
 
-collator --> collator: It is collators (Bob) order to build a block
-sequencer --> mangatacontract: Sequencer (Bob) will read ETH contract updates
-sequencer --> collator: Submit Extrinsic with new ETH deposits
-collator --> collator: A new ETH compatible address will be created for user
-collator --> collator: New Token will be registered in asset registry
-collator --> collator: Collator (Bob) will produce block
+collator --> collator: It is collators (Bob) order to produce a block and he just produced it
+
+sequencer --> collator: (Subscription) Checks weather my collator just built block
+sequencer --> collator: Checks the sequencer_latest_processed_block and sequencer_latest_processed_transaction_id
+sequencer --> mangatacontract: Read all ETH dep/with based on sequencer_latest_processed_block sequencer_latest_processed_transaction_id
+sequencer --> collator: Submit provide_l1_read extr. with all fetched ETH dep/with
+
+collator --> collator: Validates if Sequencer have enough Stake to submit
+collator --> collator: Removes the READ right from sequencer (node storage update)
+collator --> collator: store new value into pending_l1_reads with dispute period (block number)
+collator --> collator: Returns back the READ right for sequencer (node storage update)
+
+group Separate action on Collator (maybe will move to separate UML)
+
+  loop for each block at block_finalization
+  
+    loop for each l1_read
+      alt ETH address DOES exists
+        collator --> collator: Fetch Mangata version of ETH adress
+      else ETH address does NOT exists
+        collator --> collator: Creates new ETH compatible Mangata address
+      end
+      alt ERC20 token DOES exists in Asset Registry
+        collator --> collator: Fetch Asset registry version of token
+      else ERC20 token does NOT exists in Asset Registry
+        collator --> collator: Create a new ERC20 token in Asset Registry
+      end
+    end
+  
+    alt l1_read is DEPOSIT
+      collator --> collator: Mint token for user
+    else l1_read is WITHDRAWAL
+      collator --> collator: Burn token for user
+    end
+    
+    collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates
+  
+  end
+end
 
 agregator --> collator: Reads that new N block(s) was produced by some collator
 agregator --> operator: Submits task: Finalize blocks
+operator --> collator: Reads pending_updates hashes
 operator --> relay: Check finalisation on Relay chain
 operator --> operator: (V2) execute try-runtime block validation
 operator --> operator: Sign the response with operator PK
 operator --> agregator: Returns finished task
 agregator --> eigencontract: Submits TX on ETH Contract with the hashed information
-eigencontract --> eigencontract: Stored data for each block in a key-value storage
+eigencontract --> eigencontract: Stored block hash in a key-value storage
+eigencontract --> eigencontract: Stores pending_updates hashes in a key-value storage
 eigencontract --> eigencontract: Removes old block data
 
 updater --> eigencontract: Subscribed for block finalisation
 updater --> updater: Stores lates finalized block by Eigen layer
-updater --> collator: Subscribed for deposit event with finished dispute period
-updater --> mangatacontract: Once required block is finilised and there is deposit that needs to be confirmed, executes TX on ETH
+updater --> collator: Read pending_updates storage with hashes
+updater --> mangatacontract: Executes TX on ETH with all pending_updates with hashes
+updater --> collator: Execute submited_pending_updates extrinsic
 
+collator --> collator: Removes all submited pending_updates based on hash 
 
-mangatacontract --> eigencontract: Confirms that required hashes match
-mangatacontract --> user: Deposit is confirmed
+mangatacontract --> eigencontract: Compare pending_updates hashes
+
+alt pending_update is DEPOSIT
+  mangatacontract --> user: Locks amount to the contract 
+else l1_read is WITHDRAWAL
+  collator --> collator: Sends funds to user address
+end
 
 @enduml
 ```
