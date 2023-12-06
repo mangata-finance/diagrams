@@ -39,5 +39,6 @@ jobs:
         with:
           path: svg
           destination: 'mangata-diagrams'
+          process_gcloudignore: false
           headers: |-
             cache-control: 'no-store, max-age=0'
