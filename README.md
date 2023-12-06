@@ -46,22 +46,25 @@ group Separate action on Collator (maybe will move to separate UML)
   loop for each block at block_finalization
   
     loop for each l1_read
+    
       alt ETH address DOES exists
         collator --> collator: Fetch Mangata version of ETH adress
       else ETH address does NOT exists
         collator --> collator: Creates new ETH compatible Mangata address
       end
+      
       alt ERC20 token DOES exists in Asset Registry
         collator --> collator: Fetch Asset registry version of token
       else ERC20 token does NOT exists in Asset Registry
         collator --> collator: Create a new ERC20 token in Asset Registry
       end
-    end
-  
-    alt l1_read is DEPOSIT
-      collator --> collator: Mint token for user
-    else l1_read is WITHDRAWAL
-      collator --> collator: Burn token for user
+      
+      alt l1_read is DEPOSIT
+        collator --> collator: Mint token for user
+      else l1_read is WITHDRAWAL
+        collator --> collator: Burn token for user
+      end
+      
     end
     
     collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates
