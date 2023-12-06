@@ -39,3 +39,5 @@ jobs:
         with:
           path: svg
           destination: 'mangata-diagrams'
+          headers: |-
+            cache-control: 'no-store, max-age=0'
