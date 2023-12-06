@@ -94,7 +94,7 @@ mangatacontract --> eigencontract: Compare pending_updates hashes
 alt pending_update is DEPOSIT
   mangatacontract --> user: Locks amount to the contract 
 else l1_read is WITHDRAWAL
-  collator --> collator: Sends funds to user address
+  mangatacontract --> user: Sends funds to user address
 end
 
 @enduml
