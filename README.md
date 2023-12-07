@@ -25,7 +25,7 @@ participant "Eigen Agregator & TM" as agregator
 
 collections "Eigen Operators (AVS)" as operator
 participant "Eigen ETH Contract"   as eigencontract
-participant "Kusama Relay"   as relay
+participant "Rococo Relay"   as relay
 
 user --> mangatacontract: Trigger deposit of 1 MGR token 
 
@@ -85,11 +85,11 @@ eigencontract --> eigencontract: Stores pending_updates hashes in a key-value st
 eigencontract --> eigencontract: Removes old block data
 
 updater --> eigencontract: Subscribed for block finalisation
-updater --> updater: Stores lates finalized block by Eigen layer
-updater --> collator: Read pending_updates storage with hashes
-updater --> mangatacontract: Executes TX on ETH with all pending_updates with hashes
-updater --> collator: Execute submited_pending_updates extrinsic
+updater --> collator: Read pending_updates storage with hashes and latest_eigen_finalized_block
+updater --> mangatacontract: Executes TX on ETH with all pending_updates with hashes 
+updater --> collator: Execute submited_pending_updates extrinsic with submited hashes and latest finalized block by Eigen layer
 
+collator --> collator: Updated latest_eigen_finalized_block
 collator --> collator: Removes all submited pending_updates based on hash 
 
 mangatacontract --> eigencontract: Compare pending_updates hashes
