@@ -23,7 +23,7 @@ participant "Mangata Updater" as updater
 participant "Eigen Agregator & TM" as agregator
 
 collections "Eigen Operators (AVS)" as operator
-participant "Eigen ETH Contract"   as eigencontract
+collections "Eigen ETH Contracts"   as eigencontract
 participant "Rococo Relay"   as relay
 
 user --> mangatacontract: Trigger deposit of 1 MGR token 
