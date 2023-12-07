@@ -8,8 +8,7 @@ Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*
 
 ## (ETH Rollup MVP) ETH -> Mangata -> Eigen Layer AVS Deposit/Withdrawal flow
 `https://storage.googleapis.com/mangata-diagrams/svg/mangata-eth-rollup-mvp.svg`
-```plantuml:mangata-eth-rollup-mvp
-@startuml
+```plantuml:m@startuml
 
 actor       "ETH Metamask User"       as user
 participant "Mangata ETH Contract"   as mangatacontract
@@ -43,7 +42,7 @@ collator --> collator: Returns back the READ right for sequencer (node storage u
 
 group Separate action on Collator (maybe will move to separate UML)
 
-  loop for each block at block_finalization
+  loop for each block at end_dispute_period
   
     loop for each l1_read
     
@@ -63,8 +62,20 @@ group Separate action on Collator (maybe will move to separate UML)
         collator --> collator: Mint token for user
       else l1_read is WITHDRAWAL
         collator --> collator: Burn token for user
-      end
+      else l1_read is DELETE_PENDING)UPDATES
+        collator --> collator: Deletes all processed pending updates
+      else l1_read is CANCEL_RESOLUTION
       
+        alt CANCEL_RESOLUTION is CANCEL_APPROVED
+          collator --> collator: Find malicious l1_read in history with Sequencer address
+          collator --> collator: Call slash_sequencer(seq_address)
+        else CANCEL_RESOLUTION is CANCEL_NOT_APPROVED
+          collator --> collator: Find malicious cancel request in history with Sequencer address
+          collator --> collator: Call slash_sequencer(seq_address)
+        end
+        
+      end
+    
     end
     
     collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates
