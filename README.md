@@ -8,9 +8,13 @@ Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*
 
 ## (ETH Rollup MVP) ETH -> Mangata -> Eigen Layer AVS Deposit/Withdrawal flow
 `https://storage.googleapis.com/mangata-diagrams/svg/mangata-eth-rollup-mvp.svg`
-```plantuml:m@startuml
+```plantuml:mangata-eth-rollup-mvp
+
+@startuml
 
 actor       "ETH Metamask User"       as user
+
+participant "WETH Contract"   as wethcontract
 participant "Mangata ETH Contract"   as mangatacontract
 
 box "Bob - dude who runs Mangata Collator + Sequencer as one service" #LightBlue
@@ -26,12 +30,22 @@ collections "Eigen Operators (AVS)" as operator
 collections "Eigen ETH Contracts"   as eigencontract
 participant "Rococo Relay"   as relay
 
-user --> mangatacontract: Trigger deposit of 1 MGR token 
+user --> mangatacontract: Trigger deposit of 1 WETH token 
 
 collator --> collator: It is collators (Bob) order to produce a block and he just produced it
 
 sequencer --> collator: (Subscription) Checks weather my collator just built block
 sequencer --> collator: Checks the sequencer_latest_processed_block and sequencer_latest_processed_transaction_id
+
+group Iteration V2
+   sequencer --> collator: Checks if the token already exists using RPC getL1AssetRegistry
+      alt ERC20 token DOES exists in Mangata
+      else ERC20 token does NOT exists in Asset Registry
+        sequencer --> wethcontract: Check for metadata (symbol, decimals,...) and also validates that ID is valid
+        sequencer --> collator: executing register_l1_asset extrinsic
+      end
+end
+
 sequencer --> mangatacontract: Read all ETH dep/with based on sequencer_latest_processed_block sequencer_latest_processed_transaction_id
 sequencer --> collator: Submit provide_l1_read extr. with all fetched ETH dep/with
 
@@ -50,12 +64,6 @@ group Separate action on Collator (maybe will move to separate UML)
         collator --> collator: Fetch Mangata version of ETH adress
       else ETH address does NOT exists
         collator --> collator: Creates new ETH compatible Mangata address
-      end
-      
-      alt ERC20 token DOES exists in Asset Registry
-        collator --> collator: Fetch Asset registry version of token
-      else ERC20 token does NOT exists in Asset Registry
-        collator --> collator: Create a new ERC20 token in Asset Registry
       end
       
       alt l1_read is DEPOSIT
