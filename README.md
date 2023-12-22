@@ -32,19 +32,12 @@ participant "Rococo Relay"   as relay
 
 user --> mangatacontract: Trigger deposit of 1 WETH token 
 
+mangatacontract --> mangatacontract: Checks if ERC20 token exists on the network
+
 collator --> collator: It is collators (Bob) order to produce a block and he just produced it
 
 sequencer --> collator: (Subscription) Checks weather my collator just built block
 sequencer --> collator: Checks the sequencer_latest_processed_block and sequencer_latest_processed_transaction_id
-
-group Iteration V2
-   sequencer --> collator: Checks if the token already exists using RPC getL1AssetRegistry
-      alt ERC20 token DOES exists in Mangata
-      else ERC20 token does NOT exists in Asset Registry
-        sequencer --> wethcontract: Check for metadata (symbol, decimals,...) and also validates that ID is valid
-        sequencer --> collator: executing register_l1_asset extrinsic
-      end
-end
 
 sequencer --> mangatacontract: Read all ETH dep/with based on sequencer_latest_processed_block sequencer_latest_processed_transaction_id
 sequencer --> collator: Submit provide_l1_read extr. with all fetched ETH dep/with
@@ -60,26 +53,41 @@ group Separate action on Collator (maybe will move to separate UML)
   
     loop for each l1_read
     
-      alt ETH address DOES exists
-        collator --> collator: Fetch Mangata version of ETH adress
-      else ETH address does NOT exists
-        collator --> collator: Creates new ETH compatible Mangata address
-      end
-      
       alt l1_read is DEPOSIT
+          collator --> collator: Deposits validations (balance,...)
+          alt ETH address DOES exists
+            collator --> collator: Fetch Mangata version of ETH adress
+          else ETH address does NOT exists
+            collator --> collator: Creates new ETH compatible Mangata address
+          end
+          alt ETH Asset registry DOES exists
+            collator --> collator: Fetch Mangata version of ERC20 token
+          else ETH address does NOT exists
+            collator --> collator: Register new asset registry and use it
+          end
         collator --> collator: Mint token for user
       else l1_read is WITHDRAWAL
+        collator --> collator: Withdrawal validations (balance,token existence,...)
         collator --> collator: Burn token for user
       else l1_read is DELETE_PENDING)UPDATES
+         note right
+          This action is triggered from Mangata contract when dep/with is confirmed by the updater.
+        end note
         collator --> collator: Deletes all processed pending updates
       else l1_read is CANCEL_RESOLUTION
-      
+        note right
+          This action is triggered from Mangata contract when cancelation is resolved. It will be resolved by comparing the reads.
+        end note
         alt CANCEL_RESOLUTION is CANCEL_APPROVED
           collator --> collator: Find malicious l1_read in history with Sequencer address
           collator --> collator: Call slash_sequencer(seq_address)
         else CANCEL_RESOLUTION is CANCEL_NOT_APPROVED
           collator --> collator: Find malicious cancel request in history with Sequencer address
           collator --> collator: Call slash_sequencer(seq_address)
+        else l1_read is ONLY_INFO_UPDATE
+            note right
+              Don't remember. Should behave same as deposit.
+            end note
         end
         
       end
@@ -99,9 +107,9 @@ operator --> operator: (V2) execute try-runtime block validation
 operator --> operator: Sign the response with operator PK
 operator --> agregator: Returns finished task
 agregator --> eigencontract: Submits TX on ETH Contract with the hashed information
-eigencontract --> eigencontract: Stored block hash in a key-value storage
-eigencontract --> eigencontract: Stores pending_updates hashes in a key-value storage
-eigencontract --> eigencontract: Removes old block data
+eigencontract --> eigencontract: (V1.1) Stored block hash in a key-value storage
+eigencontract --> eigencontract: (V1.1) Stores pending_updates hashes in a key-value storage
+eigencontract --> eigencontract: (V1.1) Removes old block data
 
 updater --> eigencontract: Subscribed for block finalisation
 updater --> collator: Read pending_updates storage with hashes and latest_eigen_finalized_block
@@ -111,7 +119,7 @@ updater --> collator: Execute submited_pending_updates extrinsic with submited h
 collator --> collator: Updated latest_eigen_finalized_block
 collator --> collator: Removes all submited pending_updates based on hash 
 
-mangatacontract --> eigencontract: Compare pending_updates hashes
+mangatacontract --> eigencontract: (V1.1) Compare pending_updates hashes
 
 alt pending_update is DEPOSIT
   mangatacontract --> user: Locks amount to the contract 
