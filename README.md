@@ -130,7 +130,7 @@ end
 @enduml
 ```
 
-![](./svg/mangata-metamask-signing.svg)
+![](./svg/mangata-eth-rollup-mvp.svg)
 
 ## Metamask EVM signing
 `https://storage.googleapis.com/mangata-diagrams/svg/mangata-metamask-signing.svg`
