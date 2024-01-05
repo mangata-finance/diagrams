@@ -14,7 +14,6 @@ Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*
 
 actor       "ETH Metamask User"       as user
 
-participant "WETH Contract"   as wethcontract
 participant "Mangata ETH Contract"   as mangatacontract
 
 box "Bob - dude who runs Mangata Collator + Sequencer as one service" #LightBlue
@@ -42,16 +41,17 @@ sequencer --> collator: Checks the sequencer_latest_processed_block and sequence
 sequencer --> mangatacontract: Read all ETH dep/with based on sequencer_latest_processed_block sequencer_latest_processed_transaction_id
 sequencer --> collator: Submit provide_l1_read extr. with all fetched ETH dep/with
 
-collator --> collator: Validates if Sequencer have enough Stake to submit
-collator --> collator: Removes the READ right from sequencer (node storage update)
 collator --> collator: store new value into pending_l1_reads with dispute period (block number)
-collator --> collator: Returns back the READ right for sequencer (node storage update)
 
 group Separate action on Collator (maybe will move to separate UML)
 
   loop for each block at end_dispute_period
   
     loop for each l1_read
+    
+    
+        collator --> collator: Validates if Sequencer have enough Stake to submit
+        collator --> collator: Removes the READ right from sequencer (node storage update)
     
       alt l1_read is DEPOSIT
           collator --> collator: Deposits validations (balance,...)
@@ -69,13 +69,13 @@ group Separate action on Collator (maybe will move to separate UML)
       else l1_read is WITHDRAWAL
         collator --> collator: Withdrawal validations (balance,token existence,...)
         collator --> collator: Burn token for user
-      else l1_read is DELETE_PENDING)UPDATES
-         note right
+      else l1_read is DELETE_PENDING_UPDATES
+         note over collator
           This action is triggered from Mangata contract when dep/with is confirmed by the updater.
         end note
         collator --> collator: Deletes all processed pending updates
       else l1_read is CANCEL_RESOLUTION
-        note right
+        note over collator
           This action is triggered from Mangata contract when cancelation is resolved. It will be resolved by comparing the reads.
         end note
         alt CANCEL_RESOLUTION is CANCEL_APPROVED
@@ -84,17 +84,20 @@ group Separate action on Collator (maybe will move to separate UML)
         else CANCEL_RESOLUTION is CANCEL_NOT_APPROVED
           collator --> collator: Find malicious cancel request in history with Sequencer address
           collator --> collator: Call slash_sequencer(seq_address)
-        else l1_read is ONLY_INFO_UPDATE
-            note right
-              Don't remember. Should behave same as deposit.
-            end note
         end
+      
+      else l1_read is ONLY_INFO_UPDATE
+        note over collator
+          We dont need to do any action, it serves as information event for our contracts.
+        end note
         
       end
     
+        collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates
+        collator --> collator: Returns back the READ right for sequencer (node storage update)
+    
     end
     
-    collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates
   
   end
 end
@@ -114,10 +117,7 @@ eigencontract --> eigencontract: (V1.1) Removes old block data
 updater --> eigencontract: Subscribed for block finalisation
 updater --> collator: Read pending_updates storage with hashes and latest_eigen_finalized_block
 updater --> mangatacontract: Executes TX on ETH with all pending_updates with hashes 
-updater --> collator: Execute submited_pending_updates extrinsic with submited hashes and latest finalized block by Eigen layer
-
-collator --> collator: Updated latest_eigen_finalized_block
-collator --> collator: Removes all submited pending_updates based on hash 
+updater --> updater: V1 resilience handling: store processed blocks and tx Indexes into Redis
 
 mangatacontract --> eigencontract: (V1.1) Compare pending_updates hashes
 
