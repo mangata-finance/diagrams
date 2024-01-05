@@ -130,7 +130,57 @@ end
 @enduml
 ```
 
-![](./svg/mangata-eth-rollup-mvp.svg)
+![](./svg/mangata-metamask-signing.svg)
+
+## Metamask EVM signing
+`https://storage.googleapis.com/mangata-diagrams/svg/mangata-metamask-signing.svg`
+```plantuml:mangata-metamask-signing
+
+@startuml
+
+actor       "Metamask User"       as user
+
+
+participant "app.mangata.finance" as app
+
+participant "SDK" as sdk
+
+actor       "Metamask Wallet"       as met
+
+actor       "Polkadot Wallet"       as pol
+
+box "Mangata Node" #LightBlue
+participant "Mangata RPC API"   as rpc
+participant "Mangata Extrinsics API" as ext
+end box
+
+user --> app: Click wants to SWAP Token A for token B
+app --> sdk: sign transaction with unified sign SDK method
+
+alt METAMASK wallet is used
+  sdk --> rpc: Specific API to encode my sign method with params
+  rpc --> sdk: Returns encoded JSON representation of calling method
+  sdk --> met: Request to sign tx with aritrary JSON encoded data received from Mangata RPC
+  met --> user: Opening the signing popup
+  user --> met: Signs the tx
+  met --> sdk: Return signature
+  sdk --> ext: Execute (multy)SWAP with signature from Metamask
+  ext --> rpc: Decode the JSON data with same method it was encoded
+else POLKADOT wallet is used
+  sdk --> pol: Request to sign tx
+  pol --> user: Opening sign popup
+  user --> pol: Signs tx
+  pol --> sdk: Returns sidned tx
+  sdk --> ext: Execute (multy)SWAP with signature from Polkadot compatible wallet
+end
+  ext --> ext: Executes the SWAP
+  ext --> sdk: successfull tx execution
+  sdk --> user: successfull tx execution
+
+@enduml
+```
+
+![](./svg/mangata-metamask-signing.svg)
 
 ## Mangata BE team workflow and release process
 `https://storage.googleapis.com/mangata-diagrams/svg/be-workflow-and-release.svg`
