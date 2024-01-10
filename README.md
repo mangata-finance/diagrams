@@ -38,6 +38,24 @@ collator --> collator: It is collators (Bob) order to produce a block and he jus
 sequencer --> collator: (Subscription) Checks weather my collator just built block
 sequencer --> collator: Checks the sequencer_latest_processed_block and sequencer_latest_processed_transaction_id
 
+sequencer --> collator: Fetch PENDING_REQUESTS (reads)
+
+ loop for each PENDING_REQUESTS read
+ 
+ sequencer --> mangatacontract: get pending reads based on lastProccessedRequestOnL1 and lastAcceptedRequestOnL1
+ 
+ sequencer --> sequencer: compare PENDING_REQUESTS read and pending read from ETH contract. Using hashing, or byte array value.
+
+    alt PENDING_REQUESTS read is NOT same as on ETH contract
+      sequencer --> collator: Submit Cancel request extrinsic
+    else if the values match
+        note over sequencer
+          We dont need to do any action.
+        end note
+    end
+ 
+ end
+
 sequencer --> mangatacontract: Read all ETH dep/with based on sequencer_latest_processed_block sequencer_latest_processed_transaction_id
 sequencer --> collator: Submit provide_l1_read extr. with all fetched ETH dep/with
 
