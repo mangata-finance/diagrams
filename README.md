@@ -162,6 +162,53 @@ end
 
 ![](./svg/gasp-eth-rollup-mvp.svg)
 
+
+## Operator list sharing
+`https://storage.googleapis.com/mangata-diagrams/svg/operators-list-sharing.svg`
+```plantuml:operators-list-sharing
+
+@startuml
+
+box "Eigen Layer" #LightBlue
+collections       "Gasp Finelizers (AVS)"       as operator
+participant       "Aggregator"       as aggregator
+participant       "Eigen Layer contract"       as eigencontract
+participant       "Gasp Eigen contract"       as gaspeigencontract
+end box
+
+box "Gasp Rolldown" #LightYellow
+collections       "Arbitrum OR Gasp Contract"       as arbcontr
+collections       "Gasp Nodes"       as collator
+collections       "Arb OR Eth Updater"       as updater
+end box
+
+note over aggregator
+  Trigger is N block or registration event
+end note
+aggregator --> operator: Creates a task "Share operator list" 
+operator --> eigencontract: Fetch the the current aggregated BLS key and operators stake value
+operator --> aggregator: Signed response of aggregated BLS key and operators stake value
+note over aggregator
+  Currently we will sign with older
+end note
+aggregator --> gaspeigencontract: Signs the task response
+gaspeigencontract -> gaspeigencontract: Verifies the new operator list with quorum threshold
+gaspeigencontract -> gaspeigencontract: (optional) Verifies the state, not only the quorum threshold
+updater -> gaspeigencontract: On operator list change event, fetch the new list information
+updater -> arbcontr: Submits new information 
+arbcontr -> arbcontr: Validates the new list with older aggreagated key and stake information
+alt operator list is VALID
+  arbcontr -> arbcontr: Updates the storage with new aggregated key and operator stakes.
+else operator list is INVALID
+  arbcontr -> updater: Failed tx, no update
+end
+
+@enduml
+```
+
+![](./svg/operators-list-sharing.svg)
+
+
 ## Metamask EVM signing
 `https://storage.googleapis.com/mangata-diagrams/svg/gasp-metamask-signing.svg`
 ```plantuml:gasp-metamask-signing
