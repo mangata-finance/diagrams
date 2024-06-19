@@ -188,7 +188,6 @@ end box
 
 box "Gasp Rolldown" #LightYellow
 collections       "Arbitrum OR Gasp Contract"       as arbcontr
-collections       "Gasp Nodes"       as collator
 collections       "Arb OR Eth Updater"       as updater
 end box
 
