@@ -112,7 +112,13 @@ group Separate action on Collator (maybe will move to separate UML)
     
         collator --> collator: Prepare batches of pending updates based on update_batch_size configuration
         collator --> collator: Prepare and store the Merkle Root of all the WITHDRAWAL and DEPOSIT of pending update batch
-        collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates
+        
+        note over collator
+            Pending updates should have identifier
+            We need to have an API to fetch proofs based on the pending update identifier
+            Our merkle leafs should be unique
+        end note
+        collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates with Merkle Root and Proofs
         collator --> collator: Returns back the READ right for sequencer (node storage update)
     
     end
@@ -128,7 +134,6 @@ note over operator
   We need an option to switch off the block validation.
 end note
 operator --> operator: Validates N blocks and do storage proof - N should be configurable
-operator --> operator: (optional) Validate that pending_updates are part of Merkel Root
 operator --> operator: Prepare the Merkel Root of pending_updates as task response
 operator --> operator: Sign the response with operator PK
 operator --> agregator: Returns finished task
@@ -140,21 +145,26 @@ updater --> collator: (Subscription) Checks weather my collator just built block
 updater --> eigencontract: Subscribed for block finalisation
 updater --> eigencontract: Fetch the eygen layer Merkel root
 updater --> collator: Read all batched penfing_updates?
-updater --> gaspcontract: Executes TX on ETH with all pending_updates alongside with the Merkel Root
+updater --> gaspcontract: Executes TX on ETH with the Merkel Root coresponding with pending_update batch identifier
 
-gaspcontract --> gaspcontract: Validates the updates are part of the submited Merkel Root
-gaspcontract --> gaspcontract: Updates storages of token values for users
+gaspcontract --> gaspcontract: Stores Merkel Root with pending_update batch identifier
 
 note over gaspcontract
   Ferries TODO
 end note
 
 alt pending_update is DEPOSIT
-  user --> gaspcontract: Close deposit
-  user --> gaspcontract: Locks amount to the contract ???
+  user --> collator: Get the pending update.
+  user --> eigencontract: Get the proofs of pending_update
+  user --> gaspcontract: Close deposit (bringing pending_update + signed proof from Eigen layer)
+  gaspcontract --> gaspcontract: Validate the proofs
+  gaspcontract --> user: Locks amount to the contract.
 else l1_read is WITHDRAWAL
-  user --> gaspcontract: Close withdrawal
-  user --> gaspcontract: Sends funds to user address
+  user --> collator: Get the pending update.
+  user --> eigencontract: Get the proofs of pending_update
+  user --> gaspcontract: Close withdrawal (bringing pending_update + signed proof from Eigen layer)
+  gaspcontract --> gaspcontract: Validate the proofs
+  gaspcontract --> user: Sends funds to user address
 end
 
 @enduml
