@@ -28,14 +28,12 @@ participant "Eigen Agregator & TM" as agregator
 collections "Gasp Finalizer (AVS)" as operator
 collections "Eigen ETH Contracts"   as eigencontract
 
+user --> gaspcontract: Approval of 1 WETH token usage
 user --> gaspcontract: Trigger deposit of 1 WETH token 
-
-gaspcontract --> gaspcontract: Checks if ERC20 token exists on the network
 
 collator --> collator: It is collators (Bob) order to produce a block and he just produced it
 
 sequencer --> collator: (Subscription) Checks weather my collator just built block
-sequencer --> collator: Checks the sequencer_latest_processed_block and sequencer_latest_processed_transaction_id
 
 sequencer --> collator: Fetch PENDING_REQUESTS (reads)
 
@@ -187,22 +185,21 @@ participant       "Gasp Eigen contract"       as gaspeigencontract
 end box
 
 box "Gasp Rolldown" #LightYellow
-collections       "Arbitrum OR Gasp Contract"       as arbcontr
-collections       "Arb OR Eth Updater"       as updater
+collections       "L1 Rolldown Contracts"       as arbcontr
+collections       "L1 Updaters"       as updater
 end box
 
 note over aggregator
-  Trigger is N block or registration event
+  Trigger is: registration event, ejection of the operator
 end note
 aggregator --> operator: Creates a task "Share operator list" 
 operator --> eigencontract: Fetch the the current aggregated BLS key and operators stake value
 operator --> aggregator: Signed response of aggregated BLS key and operators stake value
 note over aggregator
-  Currently we will sign with older
+  We will sign with new agg. key
 end note
 aggregator --> gaspeigencontract: Signs the task response
-gaspeigencontract -> gaspeigencontract: Verifies the new operator list with quorum threshold
-gaspeigencontract -> gaspeigencontract: (optional) Verifies the state, not only the quorum threshold
+gaspeigencontract -> gaspeigencontract: Verifies the new operator list with quorum threshold and stakes
 updater -> gaspeigencontract: On operator list change event, fetch the new list information
 updater -> arbcontr: Submits new information 
 arbcontr -> arbcontr: Validates the new list with older aggreagated key and stake information
