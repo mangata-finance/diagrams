@@ -16,16 +16,22 @@ actor       "ETH Metamask User"       as user
 
 participant "Gasp ETH Contract"   as gaspcontract
 
-box "Bob - dude who runs Gasp Collator + Sequencer as one service" #LightBlue
+box "Bob - dude who runs Gasp Collator + Sequencer as one service using docker-compose" #LightBlue
 participant "Sequencer (Bob)"   as sequencer
 participant "Collator (Bob)" as collator
 end box
 
-participant "Gasp Updater" as updater
-
+box "Gasp Services" #LightYellow
+collections "L1 Updaters" as updater
+participant "Gasp Archive node" as archive
 participant "Eigen Agregator & TM" as agregator
+end box
 
-collections "Gasp Finalizer (AVS)" as operator
+box "AVS operator who runs Finalizer and Gasp Node in one docker container" #LightGreen
+collections "Gasp Finalizer" as operator
+collections "Gasp Follower Node" as follower
+end box
+
 collections "Eigen ETH Contracts"   as eigencontract
 
 user --> gaspcontract: Approval of 1 WETH token usage
@@ -84,11 +90,6 @@ group Separate action on Collator (maybe will move to separate UML)
       else l1_read is WITHDRAWAL
         collator --> collator: Withdrawal validations (balance,token existence,...)
         collator --> collator: Burn token for user
-      else l1_read is DELETE_PENDING_UPDATES
-         note over collator
-          This action is triggered from Gasp contract when dep/with is confirmed by the updater.
-        end note
-        collator --> collator: Deletes all processed pending updates
       else l1_read is CANCEL_RESOLUTION
         note over collator
           This action is triggered from Gasp contract when cancelation is resolved. It will be resolved by comparing the reads.
@@ -100,24 +101,26 @@ group Separate action on Collator (maybe will move to separate UML)
           collator --> collator: Find malicious cancel request in history with Sequencer address
           collator --> collator: Call slash_sequencer(seq_address)
         end
-      
-      else l1_read is ONLY_INFO_UPDATE
-        note over collator
-          We dont need to do any action, it serves as information event for our contracts.
-        end note
         
       end
     
-        collator --> collator: Prepare batches of pending updates based on update_batch_size configuration
-        collator --> collator: Prepare and store the Merkle Root of all the WITHDRAWAL and DEPOSIT of pending update batch
+      note over collator
+        Our merkle leafs (pending updates) should be unique
+      end note
+   
+      collator --> collator: Store succesfull WITHDRAWAL and CANCELS to pending_updates (leafs of Merkle root) 
         
+      alt automatically when update_batch_size is reached
+         collator --> collator: Prepare batch for updater to update
+      else automatically timed when update_minimal_block_period is reached 
+         collator --> collator: Prepare batch for updater to update
+      else optional creation
         note over collator
-            Pending updates should have identifier
-            We need to have an API to fetch proofs based on the pending update identifier
-            Our merkle leafs should be unique
+            There needs to be extrinsic to form a new batch. There is a configurable merkle_root_batch_creation_fee for this tx. This fee needs to be higher than Eigen layer estimated costs.
         end note
-        collator --> collator: Store succesfull WITHDRAWAL or DEPOSIT to pending_updates with Merkle Root and Proofs
-        collator --> collator: Returns back the READ right for sequencer (node storage update)
+      end
+      
+    collator --> collator: Returns back the READ right for sequencer (node storage update)
     
     end
     
@@ -125,25 +128,23 @@ group Separate action on Collator (maybe will move to separate UML)
   end
 end
 
-agregator --> collator: Reads that new N block(s) was produced by some collator
-agregator --> operator: Submits task: "Finalize GASP blocks"
-operator --> collator: Reads pending_updates hashes and Merkel Root of pending_updates
-note over operator
-  We need an option to switch off the block validation.
+agregator --> archive: Check if there is a new batch of updates formed on the Node
+agregator --> eigencontract: Submits task: "Finalize GASP blocks"
+operator --> eigencontract: Fetches the new task
+note over follower
+  Merkle Root should be build on demand inside RPC, when asked.
 end note
+operator --> follower: Reads pending_updates hashes and Merkel Root of pending_updates
 operator --> operator: Validates N blocks and do storage proof - N should be configurable
 operator --> operator: Prepare the Merkel Root of pending_updates as task response
 operator --> operator: Sign the response with operator PK
 operator --> agregator: Returns finished task
 agregator --> eigencontract: Submits TX with Merkel Root information
 eigencontract --> eigencontract: Stores Merkel Root information with batch identifier
-eigencontract --> eigencontract: Stores pending_updates hashes in a key-value storage
 
-updater --> collator: (Subscription) Checks weather my collator just built block
-updater --> eigencontract: Subscribed for block finalisation
-updater --> eigencontract: Fetch the eygen layer Merkel root
-updater --> collator: Read all batched penfing_updates?
-updater --> gaspcontract: Executes TX on ETH with the Merkel Root coresponding with pending_update batch identifier
+updater --> eigencontract: Subscribed for for the finilized updates
+updater --> eigencontract: Fetch the eygen layer Merkel Root
+updater --> gaspcontract: Executes TX to submit Merkle Root with pending_update batch identifier
 
 gaspcontract --> gaspcontract: Stores Merkel Root with pending_update batch identifier
 
@@ -151,19 +152,13 @@ note over gaspcontract
   Ferries TODO
 end note
 
-alt pending_update is DEPOSIT
-  user --> collator: Get the pending update.
-  user --> eigencontract: Get the proofs of pending_update
-  user --> gaspcontract: Close deposit (bringing pending_update + signed proof from Eigen layer)
-  gaspcontract --> gaspcontract: Validate the proofs
-  gaspcontract --> user: Locks amount to the contract.
-else l1_read is WITHDRAWAL
-  user --> collator: Get the pending update.
-  user --> eigencontract: Get the proofs of pending_update
-  user --> gaspcontract: Close withdrawal (bringing pending_update + signed proof from Eigen layer)
-  gaspcontract --> gaspcontract: Validate the proofs
-  gaspcontract --> user: Sends funds to user address
-end
+user --> archive: Get the pending update and proof from RPC.
+user --> gaspcontract: Close withdrawal (bringing pending_update + signed proof from Eigen layer)
+gaspcontract --> gaspcontract: Validate the proofs
+note over gaspcontract
+  Fee is payed by user
+end note
+gaspcontract --> user: Sends funds to user address
 
 @enduml
 ```
