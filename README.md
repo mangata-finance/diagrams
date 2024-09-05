@@ -34,14 +34,32 @@ end box
 
 collections "Eigen ETH Contracts"   as eigencontract
 
-user --> gaspcontract: Approval of 1 WETH token usage
-user --> gaspcontract: Trigger deposit of 1 WETH token 
 
-collator --> collator: It is collators (Bob) order to produce a block and he just produced it
+alt DEPOSIT token from L1 to L2
 
-sequencer --> collator: (Subscription) Checks weather my collator just built block
+    user --> gaspcontract: Approval of 1 WETH token usage
+    user --> gaspcontract: Trigger deposit of 1 WETH token 
 
-sequencer --> collator: Fetch PENDING_REQUESTS (reads)
+else WITHDRAWAL from L2 to L1
+
+    user --> collator: Initialize withdrawal
+    collator --> collator: Withdrawal validations (balance,token existence,...)
+    collator --> collator: Burn token for user
+
+end
+
+note over sequencer
+  There is round robin selection of sequencers and selected sequencer is supposed to bring ETH information (deposit) to Gasp Node.
+end note
+
+sequencer --> collator: Checks weather its my round to submit "read" from L1 to L2.
+
+sequencer --> gaspcontract: Fetch PENDING_REQUESTS (reads)
+
+note over sequencer
+Sequencer monitoring system. Sequencer runs a job that tracks the updates and submits cancel requests if something observed. 
+Not related to selection of the sequencer to provide L1 "read". It's async job. Each Sequenbcer have NUM_OF_SEQUENCER - 1 cancel rights.
+end note
 
  loop for each PENDING_REQUESTS read
  
@@ -59,6 +77,9 @@ sequencer --> collator: Fetch PENDING_REQUESTS (reads)
  
  end
 
+note over sequencer
+Sequencer have 1 READ right that allows him to provide the information from L1.
+end note
 sequencer --> gaspcontract: Read all ETH dep/with based on sequencer_latest_processed_block sequencer_latest_processed_transaction_id
 sequencer --> collator: Submit provide_l1_read extr. with all fetched ETH dep/with
 
@@ -87,9 +108,16 @@ group Separate action on Collator (maybe will move to separate UML)
             collator --> collator: Register new asset registry and use it
           end
         collator --> collator: Mint token for user
-      else l1_read is WITHDRAWAL
-        collator --> collator: Withdrawal validations (balance,token existence,...)
-        collator --> collator: Burn token for user
+        
+      else l1_read is WITHDRAWAL_RESOLUTION
+      
+        alt WITHDRAWAL_RESOLUTION is FAILED
+            note over collator
+                put system to Maintenance mode
+            end note
+            collator --> collator: Mint tokens to user back
+        end
+      
       else l1_read is CANCEL_RESOLUTION
         note over collator
           This action is triggered from Gasp contract when cancelation is resolved. It will be resolved by comparing the reads.
@@ -139,18 +167,28 @@ operator --> operator: Validates N blocks and do storage proof - N should be con
 operator --> operator: Prepare the Merkel Root of pending_updates as task response
 operator --> operator: Sign the response with operator PK
 operator --> agregator: Returns finished task
-agregator --> eigencontract: Submits TX with Merkel Root information
+alt when quorum is met
+    agregator --> eigencontract: Submits TX with Merkel Root information
+else quorum is not met
+    note over agregator
+        Mark previous task as failed and forma  new one again. Max retries 3. Manual council intervention needed afterwards.
+    end note
+    agregator --> eigencontract: Retry task
+end
 eigencontract --> eigencontract: Stores Merkel Root information with batch identifier
 
 updater --> eigencontract: Subscribed for for the finilized updates
 updater --> eigencontract: Fetch the eygen layer Merkel Root
-updater --> gaspcontract: Executes TX to submit Merkle Root with pending_update batch identifier
+
+note over updater
+    Information submited from updater needs to be signed by Eigen Layer operators.
+     Rolldown contract needs to verify this against its stored list of operators aggregated key and stakes.
+     This list synchronisation is described in different diagram.
+end note
+
+updater --> gaspcontract: Executes TX to submit Merkle Root with pending_update batch identifier.
 
 gaspcontract --> gaspcontract: Stores Merkel Root with pending_update batch identifier
-
-note over gaspcontract
-  Ferries TODO
-end note
 
 user --> archive: Get the pending update and proof from RPC.
 user --> gaspcontract: Close withdrawal (bringing pending_update + signed proof from Eigen layer)
@@ -208,6 +246,36 @@ end
 ```
 
 ![](./svg/operators-list-sharing.svg)
+
+
+
+
+## Ferries withdrawal
+`https://storage.googleapis.com/mangata-diagrams/svg/ferries-withdrawal.svg`
+```plantuml:ferries-withdrawal
+
+@startuml
+
+participant       "Ferry"       as ferry
+
+
+box "Eigen Layer" #LightBlue
+collections       "Gasp Finelizers (AVS)"       as operator
+participant       "Aggregator"       as aggregator
+participant       "Eigen Layer contract"       as eigencontract
+participant       "Gasp Eigen contract"       as gaspeigencontract
+end box
+
+box "Gasp Rolldown" #LightYellow
+collections       "L1 Rolldown Contracts"       as arbcontr
+collections       "L1 Updaters"       as updater
+end box
+
+
+@enduml
+```
+
+![](./svg/ferries-withdrawal.svg)
 
 
 ## Metamask EVM signing
