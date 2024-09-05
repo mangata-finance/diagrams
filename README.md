@@ -12,9 +12,9 @@ Files will be uploaded to `https://storage.googleapis.com/mangata-diagrams/svg/*
 
 @startuml
 
-actor       "ETH Metamask User"       as user
+actor       "L1 Metamask User (L1 = ETH/ARB/OPT/...)"       as user
 
-participant "Gasp ETH Contract"   as gaspcontract
+collections "Rolldown L1 Contract"   as gaspcontract
 
 box "Bob - dude who runs Gasp Collator + Sequencer as one service using docker-compose" #LightBlue
 participant "Sequencer (Bob)"   as sequencer
@@ -32,7 +32,7 @@ collections "Gasp Finalizer" as operator
 collections "Gasp Follower Node" as follower
 end box
 
-collections "Eigen ETH Contracts"   as eigencontract
+participant "Gasp Eigen Layer ETH Contracts"   as eigencontract
 
 
 alt DEPOSIT token from L1 to L2
