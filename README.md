@@ -108,15 +108,6 @@ group Separate action on Collator (maybe will move to separate UML)
             collator --> collator: Register new asset registry and use it
           end
         collator --> collator: Mint token for user
-        
-      else l1_read is WITHDRAWAL_RESOLUTION
-      
-        alt WITHDRAWAL_RESOLUTION is FAILED
-            note over collator
-                put system to Maintenance mode
-            end note
-            collator --> collator: Mint tokens to user back
-        end
       
       else l1_read is CANCEL_RESOLUTION
         note over collator
