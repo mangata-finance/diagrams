@@ -29,7 +29,7 @@ end box
 
 box "AVS operator who runs Finalizer and Gasp Node in one docker container" #LightGreen
 collections "Gasp Finalizer" as operator
-collections "Gasp Follower Node" as follower
+collections "Gasp Follower Node (DB)" as follower
 end box
 
 participant "Gasp Eigen Layer ETH Contracts"   as eigencontract
@@ -236,7 +236,74 @@ end
 @enduml
 ```
 
+
 ![](./svg/operators-list-sharing.svg)
+
+## Simplified GASP Rollup architecture
+`https://storage.googleapis.com/mangata-diagrams/svg/simplified-gasp-rollup-architecture.svg`
+```plantuml:simplified-gasp-rollup-architecture
+
+@startuml
+
+actor       "User (Metamask, L1)" as user
+
+collections "L1 Rolldown Contract" as gaspcontract
+
+collections "Sequencer" as sequencer
+collections "Collator (GASP Node)" as collator
+
+box "Gasp Services" #LightYellow
+    collections "L1 Updaters" as updater
+    participant "Archive Node" as archive
+    participant "Aggregator" as aggregator
+end box
+
+collections "AVS Operator" as finalizer
+
+participant "AVS ETH Contract" as eigencontract
+
+alt User deposits
+    user --> gaspcontract: Executes tx for deposit
+else User withdraws
+    user --> collator: Request withdrawal
+end
+    
+sequencer --> gaspcontract: Fetch pending withdrawals in a job
+sequencer --> collator: Provide deposit info to collator using extrinsic
+
+
+alt Dispute period ends
+    alt deposit
+        collator --> collator: Mint token
+    else withdrawal
+        collator --> collator: Burn token and create a batches of withdrawal
+    end
+    
+end
+
+note over finalizer
+    GASP node used as dtabase to get Merkle Root
+end note
+aggregator --> archive: Fetch last batch
+aggregator --> finalizer: Task for forming a Merkle Root for 1 batch
+
+finalizer --> finalizer: Form and Signs the Merkle Root with BLS
+finalizer --> aggregator: Signed Root
+
+aggregator --> eigencontract: Submit task response to ETH Eigen Layer
+
+updater --> eigencontract: get the latest task (Merkle Root)
+updater --> gaspcontract: Store Merkle Root executing tx on L1 
+
+user --> archive: Get withdrawal proof
+user --> gaspcontract: Complete withdrawal with Merkle Proof
+
+gaspcontract --> user: Validates Merkle Proof agains Merkle Root and send funds
+
+@enduml
+```
+
+![](./svg/simplified-gasp-rollup-architecture.svg)
 
 
 
