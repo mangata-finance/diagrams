@@ -195,6 +195,71 @@ gaspcontract --> user: Sends funds to user address
 ![](./svg/gasp-eth-rollup-mvp.svg)
 
 
+## Infrastructure inter-service communication
+`https://storage.googleapis.com/mangata-diagrams/svg/infra-inter-service-communication.svg`
+```plantuml:infra-inter-service-communication
+
+@startuml
+
+' Define the components
+component "Frontend" as FE
+component "Archive Node" as Archive
+component "Stash"
+component "Tenderly L1" as TenderlyL1
+component "Collator"
+
+' Secondary services
+component "Sequencer"
+component "Updater"
+component "Tenderly ETH AVS Node" as TenderlyAVS
+component "AVS Aggregator" as AVSAggregator
+component "AVS Operator" as AVSOperator
+component "Deposit Ferry" as DepositFerry
+component "Withdrawal Ferry" as WithdrawalFerry
+component "Closer"
+
+' Define the relationships
+FE --> Archive : Storage & Tx Execution
+FE --> Stash : History & Stats
+FE --> TenderlyL1 : Storage & Tx Execution
+
+Archive --> Collator : Storage Sync & Tx Execution
+
+Stash --> Archive : Indexes History
+Stash --> TenderlyL1 : Indexes History
+
+Sequencer --> TenderlyL1 : Read Deposits
+Sequencer --> Archive : Execute Deposits
+
+Updater --> TenderlyAVS : Read Merkle Roots
+Updater --> TenderlyL1 : Submit Merkle Roots
+
+AVSAggregator --> Archive : Withdrawal Batch Tracking
+AVSAggregator --> TenderlyAVS : Submit Tasks to Process Merkle Roots
+
+AVSOperator --> TenderlyAVS : Read Tasks
+AVSOperator --> AVSlAggregator : Submit Task Results
+
+DepositFerry --> TenderlyL1 : Read Deposits
+DepositFerry --> Archive : Execute Deposits Faster
+
+WithdrawalFerry --> Archive : Withdrawal Tracking
+WithdrawalFerry --> TenderlyL1 : Execute Withdrawals Faster
+
+Closer --> Archive : Withdrawal Tracking
+Closer --> TenderlyL1 : Execute Non-Ferried Withdrawals
+
+' Adjust Collator for better layout
+Collator -[hidden]-> Archive : Align for spacing
+Collator ..> Archive : Storage Sync & Tx Execution
+@enduml
+
+
+```
+
+![](./svg/infra-inter-service-communication.svg)
+
+
 ## Operator list sharing
 `https://storage.googleapis.com/mangata-diagrams/svg/operators-list-sharing.svg`
 ```plantuml:operators-list-sharing
